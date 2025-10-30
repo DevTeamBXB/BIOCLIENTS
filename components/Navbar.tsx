@@ -23,9 +23,9 @@ export default function Navbar() {
               Inicio
             </span>
           </Link>
-          <Link href="/orders/new">
+          <Link href="/ordersmenu">
             <span className="hover:text-green-600 font-medium cursor-pointer transition-colors">
-              Generar Pedido
+              Pedidos
             </span>
           </Link>
         </div>

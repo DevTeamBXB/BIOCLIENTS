@@ -7,45 +7,96 @@ import Order from "@/models/Order";
 import Product from "@/models/Product";
 import DashboardClient from "@/components/DashboardClient";
 import Navbar from "@/components/Navbar";
+import { Types } from "mongoose";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.correo) redirect("/login");
+  if (!session?.user?.correo) redirect("/");
 
   await connectToDatabase();
 
- const client = await Client.findOne({ correo: session.user.correo }).lean<Cliente>();
+  const client = await Client.findOne({ correo: session.user.correo }).lean<Cliente>();
   if (!client) return <p>Usuario no encontrado</p>;
 
-  const orders = await Order.find({ userId: client._id }).sort({ creado_en: -1 }).lean();
+  // Traer pedidos y productos
+  // Populamos productos no es necesario aquí porque enriquecemos manualmente con productMap
+  const orders = await Order.find({ userId: client._id }).sort({ createdAt: -1 }).lean();
   const allProducts = await Product.find().lean();
 
-  // Crear un mapa de nombre => m3
-  const productMap = new Map<string, number>();
-  allProducts.forEach(p => productMap.set(p.name.toLowerCase(), p.m3));
+  // Mapa idProducto -> { name, m3, type, businessLine } (clave string)
+  const productMap = new Map<string, { name: string; m3: number; type?: string; businessLine?: string }>();
+  allProducts.forEach((p: any) => {
+    if (!p?._id) return;
+    productMap.set(String(p._id), { name: p.name, m3: Number(p.m3) || 0, type: p.type, businessLine: p.businessLine });
+  });
 
-  // Agrupar consumo mensual
-  const monthlyConsumptionMap = new Map<string, number>();
-  orders
-    .filter(order => order.estado === "Entregado")
-    .forEach(order => {
-      const date = new Date(order.creado_en);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  // Enriquecer pedidos: añadir name, volumen por producto y normalizar quantity
+  const enrichedOrders = orders.map((order: any) => {
+    const transformedProducts = (order.products || []).map((prod: any) => {
+      // cantidad segura (maneja { $numberInt: "1" } o number o string)
+      let cantidad = 0;
+      if (prod && typeof prod.quantity === "object" && prod.quantity !== null && "$numberInt" in prod.quantity) {
+        cantidad = parseInt(prod.quantity.$numberInt);
+      } else {
+        cantidad = Number(prod.quantity) || 0;
+      }
 
-        const m3Total = order.products.reduce(
-        (sum: number, prod: { name: string; quantity: number }) => {
-          const m3 = productMap.get(prod.name.toLowerCase()) || 0;
-          return sum + m3 * prod.quantity;
-        },
-        0
-      );
+      const pid = prod._id ? String(prod._id) : "";
+      const info = productMap.get(pid) || { name: "Producto desconocido", m3: 0 };
 
-      monthlyConsumptionMap.set(monthKey, (monthlyConsumptionMap.get(monthKey) || 0) + m3Total);
+      const volumen = cantidad * (info.m3 || 0);
+
+      return {
+        _id: pid,
+        name: info.name,
+        quantity: cantidad,
+        cantidadVacios: Number(prod.cantidadVacios) || 0,
+        cantidadLlenos: Number(prod.cantidadLlenos) || 0,
+        volumen,
+      };
     });
 
-  const monthlyConsumption = Array.from(monthlyConsumptionMap.entries())
+    return {
+      ...order,
+      products: transformedProducts,
+      // normalizar createdAt en string ISO para el frontend
+      createdAt: order.createdAt ? new Date(order.createdAt).toISOString() : new Date().toISOString(),
+    };
+  });
+
+  // Calcular consumo mensual: SOLO pedidos con classification === 'Medicinal'
+  const consumoMensualMap = new Map<string, number>();
+  enrichedOrders.forEach((order: any) => {
+    const classification = (order.classification || "").toString().toLowerCase();
+    if (classification !== "medicinal") return; // ignorar no-medicinal
+
+    const date = new Date(order.createdAt);
+    if (isNaN(date.getTime())) return;
+    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+
+    const totalVolumen = (order.products || []).reduce((sum: number, p: any) => sum + (p.volumen || 0), 0);
+
+    consumoMensualMap.set(monthKey, (consumoMensualMap.get(monthKey) || 0) + totalVolumen);
+  });
+
+  // convertir a objeto ordenado por mes (opcional)
+  const consumoMensual = Array.from(consumoMensualMap.entries())
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([mes, m3]) => ({ mes, m3 }));
+    .reduce<Record<string, number>>((acc, [k, v]) => {
+      acc[k] = v;
+      return acc;
+    }, {});
+
+  // DEBUG: ver en server logs
+  console.log("📦 Pedidos (enriquecidos) count:", enrichedOrders.length);
+  // también puedes revisar first order
+  if (enrichedOrders[0]) {
+    console.log("📦 Ejemplo pedido[0]:", {
+      _id: enrichedOrders[0]._id,
+      classification: enrichedOrders[0].classification,
+      products: enrichedOrders[0].products,
+    });
+  }
 
   return (
     <>
@@ -59,8 +110,8 @@ export default async function DashboardPage() {
 
           <DashboardClient
             user={JSON.parse(JSON.stringify(client))}
-            orders={JSON.parse(JSON.stringify(orders))}
-            consumoMensual={monthlyConsumption}
+            orders={JSON.parse(JSON.stringify(enrichedOrders))}
+            consumoMensual={consumoMensual}
           />
         </div>
       </main>

@@ -50,6 +50,10 @@ export interface Cliente extends Document {
 
   tipo: 'Medicinal' | 'Industrial';
 
+  order_min?: number;
+
+  cuenta: 'Habilitada' | 'Inhabilitada' | 'Congelada';
+
   creado_en: Date;
   actualizado_en: Date;
 }
@@ -103,6 +107,15 @@ const ClienteSchema = new Schema<Cliente>(
     tipo: {
       type: String,
       enum: ['Medicinal', 'Industrial'],
+      required: true,
+    },
+
+    order_min: { type: String},
+
+    cuenta: {
+      type: String,
+      enum: ['Habilitada', 'Inhabilitada', 'Congelada'],
+      default: 'Habilitada',
       required: true,
     },
 

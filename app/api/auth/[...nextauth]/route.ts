@@ -1,4 +1,4 @@
-// /app/api/auth/[...nextauth]/route.ts
+// app/api/auth/[...nextauth]/route.ts (fragmento)
 import NextAuth, { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { connectToDatabase } from '@/lib/mongodb';
@@ -11,31 +11,30 @@ export const authOptions: NextAuthOptions = {
       name: 'credentials',
       credentials: {
         correo: { label: 'Correo', type: 'text' },
-        contraseña: { label: 'Contraseña', type: 'password' },
+        password: { label: 'Contraseña', type: 'password' }, // usamos "password" en front
+        contraseña: { label: 'Contraseña (ñ)', type: 'password' }, // por compatibilidad si quieres
       },
       async authorize(credentials) {
-        if (!credentials?.correo || !credentials?.contraseña) {
+        if (!credentials?.correo || (!credentials?.password && !credentials?.contraseña)) {
           throw new Error('Correo y contraseña requeridos');
         }
 
         await connectToDatabase();
 
         const user = await Client.findOne({ correo: credentials.correo });
+        if (!user) throw new Error('Usuario no encontrado');
 
-        if (!user) {
-          throw new Error('Usuario no encontrado');
-        }
+        // Intentamos usar user.password primero; si no existe, fallback a user['contraseña']
+        const storedHash = (user as any).password || (user as any)['contraseña'];
 
-        const passwordMatch = await bcrypt.compare(
-          credentials.contraseña,
-          user.contraseña
-        );
+        if (!storedHash) throw new Error('No existe contraseña registrada para el usuario');
 
-        if (!passwordMatch) {
-          throw new Error('Contraseña incorrecta');
-        }
+        // preferimos credentials.password (front debería enviar 'password'), pero admitimos 'contraseña'
+        const candidate = credentials.password ?? credentials.contraseña;
 
-        // Puedes incluir más campos si necesitas pasarlos al token
+        const passwordMatch = await bcrypt.compare(candidate, storedHash);
+        if (!passwordMatch) throw new Error('Contraseña incorrecta');
+
         return {
           id: user._id.toString(),
           correo: user.correo,
@@ -45,12 +44,8 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   ],
-  session: {
-    strategy: 'jwt',
-  },
-  pages: {
-    signIn: '/login',
-  },
+  session: { strategy: 'jwt' },
+  pages: { signIn: '/login' },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {

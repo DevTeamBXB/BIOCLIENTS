@@ -5,4 +5,5 @@ export type Product = {
   name: string;
   m3: number;
   type: string;
+  businessLine: 'Medicinal' | 'Otros Gases' | 'Redes y Mantenimientos' | 'Industrial' | 'Equipos Biomedicos';
 };
