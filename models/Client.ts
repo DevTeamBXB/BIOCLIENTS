@@ -18,6 +18,7 @@ export interface Direccion {
 
 export interface Cliente extends Document {
   nombre: string;
+  usuario: string;
   nit: string;
   contraseña: string;
   correo: string;
@@ -40,6 +41,7 @@ export interface Cliente extends Document {
     estado: 'Activo' | 'Vencido' | 'No tiene';
     fecha_inicio?: Date;
     fecha_vencimiento?: Date;
+    entidad: 'Bioxigen' | 'Bioximad' | 'No tiene';
   };
 
   poliza?: {
@@ -61,9 +63,10 @@ export interface Cliente extends Document {
 // ---------------- Schema principal Cliente ----------------
 const ClienteSchema = new Schema<Cliente>(
   {
+    usuario: { type: String, required: true, unique: true },
     nombre: { type: String, required: true },
     nit: { type: String, required: true, unique: true },
-    contraseña: { type: String, required: true }, // debería estar hasheada
+    contraseña: { type: String, required: true },
     correo: { type: String, required: true, unique: true },
 
     direccion_envio: [DireccionSchema],
@@ -90,6 +93,11 @@ const ClienteSchema = new Schema<Cliente>(
         enum: ['Activo', 'Vencido', 'No tiene'],
         default: 'No tiene',
       },
+      entidad: {
+        type: String,
+        enum: ['Bioxigen', 'Bioximad', 'No tiene'],
+        default: 'No tiene',
+      },
       fecha_inicio: Date,
       fecha_vencimiento: Date,
     },
@@ -110,7 +118,7 @@ const ClienteSchema = new Schema<Cliente>(
       required: true,
     },
 
-    order_min: { type: String},
+    order_min: { type: String },
 
     cuenta: {
       type: String,
@@ -127,6 +135,6 @@ const ClienteSchema = new Schema<Cliente>(
   }
 );
 
-// ---------------- Export correcto para TypeScript + Next.js ----------------
+// ---------------- Export para Next.js ----------------
 const Client = models.Client || model<Cliente>('Client', ClienteSchema);
 export default Client;

@@ -17,28 +17,36 @@ type DireccionOption = {
 };
 
 export default async function NewOrderPage() {
-  // 🔐 Sesión del usuario
+  // 🔐 Verificar sesión
   const session = await getServerSession(authOptions);
   if (!session?.user?.correo) redirect('/');
 
-  // 🌐 Conexión con la base de datos
+  // 🔌 Conexión BD
   await connectToDatabase();
 
   // 🧍 Buscar cliente
-  const client = await Client.findOne({ correo: session.user.correo }).lean<Cliente>();
-  if (!client || !Array.isArray(client.direccion_envio)) redirect('/login');
+  const client = await Client.findOne({
+    correo: session.user.correo,
+  }).lean<Cliente>();
 
-  // 🏠 Direcciones disponibles
-  const addresses: DireccionOption[] = client.direccion_envio.map((dir, index) => ({
-    id: index.toString(),
-    alias: dir.alias || '',
-    calle: dir.calle,
-    ciudad: dir.ciudad,
-  }));
+  if (!client || !Array.isArray(client.direccion_envio))
+    redirect('/login');
 
-  // 🏭 Tipo de cliente
+  // 📍 Direcciones disponibles
+  const addresses: DireccionOption[] = client.direccion_envio.map(
+    (dir, index) => ({
+      id: index.toString(),
+      alias: dir.alias || '',
+      calle: dir.calle,
+      ciudad: dir.ciudad,
+    })
+  );
+
+  // 🏭 Clasificación / tipo del cliente (Medicinal / Industrial)
   const clientTipo = (client.tipo || '').toLowerCase();
-  if (!['medicinal', 'industrial'].includes(clientTipo)) redirect('/');
+
+  if (!['medicinal', 'industrial'].includes(clientTipo))
+    redirect('/');
 
   // 📦 Productos según tipo
   const rawProducts = await Product.find(
@@ -54,27 +62,32 @@ export default async function NewOrderPage() {
     businessLine: p.businessLine,
   }));
 
-  // 🎨 Renderizado principal
+  // 🏷 Clasificación final según cliente
+  const classification =
+    clientTipo === 'medicinal'
+      ? 'Medicinal'
+      : 'Industrial';
+
   return (
     <main className="min-h-screen flex justify-center bg-gradient-to-br from-emerald-100 via-white to-sky-200 p-6">
-
       <div className="flex flex-col lg:flex-row gap-8 max-w-6xl w-full">
         
         {/* 🧾 Sección del formulario */}
-        <section className="bg-white p-8 rounded-2xl shadow-md flex-1 ">
+        <section className="bg-white p-8 rounded-2xl shadow-md flex-1">
           <h1 className="text-2xl font-bold mb-4 text-center text-gray-800">
             Nuevo pedido
           </h1>
+
           <p className="flex items-center justify-center gap-2 text-emerald-700 mb-6 text-sm font-medium">
             <AlertCircle className="w-5 h-5 text-emerald-600" />
-            {client.order_min || 'Consultar con el asesor'}
+            Tu orden mínima es {client.order_min || 'Consultar con el asesor'}
           </p>
 
           <OrderForm
             addresses={addresses}
             userEmail={session.user.correo}
             products={products}
-            classification="Medicinal"
+            classification={classification}
           />
         </section>
 
@@ -83,6 +96,7 @@ export default async function NewOrderPage() {
           <h2 className="text-xl font-semibold mb-4 text-gray-700 text-center">
             Guía de productos
           </h2>
+
           <ul className="space-y-5">
             <li className="flex items-center gap-4">
               <Image

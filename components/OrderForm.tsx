@@ -6,6 +6,8 @@ import PlusCircleIcon from '@heroicons/react/24/solid/PlusCircleIcon';
 import TrashIcon from '@heroicons/react/24/solid/TrashIcon';
 import ArrowLeftIcon from '@heroicons/react/24/solid/ArrowLeftIcon';
 import { Product } from '@/types/Product';
+import Swal from "sweetalert2";
+
 
 type Direccion = {
   id: string;
@@ -18,24 +20,39 @@ type OrderFormProps = {
   addresses: Direccion[];
   userEmail: string;
   products: Product[];
-  classification: 'Medicinal' | 'Otros Gases' | 'Redes y Mantenimientos' | 'Industrial' | 'Equipos Biomedicos';
+  clientTipo: string;
+  etiqueta: string;
 };
 
 type SelectedProduct = {
   _id: string;
   cantidadVacios: number;
   cantidadLlenos: number;
+  cantidadAjenos: number;
+  cantidadAsignacion: number;
   quantity: number;
+
+  etiqueta: "Recoleccion Ajenos" | "Entrega Ajenos" | "Entrega";
 };
 
 export default function OrderForm({
   addresses,
   userEmail,
   products: availableProducts,
-  classification,
+  clientTipo,
+  etiqueta,
 }: OrderFormProps) {
+
   const [products, setProducts] = useState<Record<string, SelectedProduct>>({
-    '0': { _id: '', cantidadVacios: 0, cantidadLlenos: 0, quantity: 0 },
+    '0': { 
+      _id: '',
+      cantidadVacios: 0,
+      cantidadLlenos: 0,
+      cantidadAjenos: 0,
+      cantidadAsignacion: 0,
+      quantity: 0,
+      etiqueta: 'Entrega'
+    },
   });
 
   const [addressId, setAddressId] = useState<string>(addresses[0]?.id || '');
@@ -45,27 +62,69 @@ export default function OrderForm({
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  // ---------------------------------------------------
+  // 🛠 FUNCION PARA ACTUALIZAR CAMPOS DE PRODUCTO
+  // ---------------------------------------------------
   const updateProduct = useCallback(
     (key: string, field: keyof SelectedProduct, value: string) => {
-      setProducts((prev) => ({
-        ...prev,
-        [key]: {
-          ...prev[key],
-          [field]: field === '_id' ? value : Number(value) || 0,
-        },
-      }));
+      setProducts((prev) => {
+        const current = prev[key] ?? {
+          _id: '',
+          cantidadVacios: 0,
+          cantidadLlenos: 0,
+          cantidadAjenos: 0,
+          cantidadAsignacion: 0,
+          quantity: 0,
+          etiqueta: 'Entrega',
+        };
+
+        // Campos string
+        if (field === '_id' || field === 'etiqueta') {
+          return {
+            ...prev,
+            [key]: {
+              ...current,
+              [field]: value,
+            } as SelectedProduct,
+          };
+        }
+
+        // Campos numéricos
+        const numeric = Number(value);
+        return {
+          ...prev,
+          [key]: {
+            ...current,
+            [field]: Number.isNaN(numeric) ? 0 : numeric,
+          } as SelectedProduct,
+        };
+      });
     },
     []
   );
 
+  // ---------------------------------------------------
+  // ➕ Añadir producto
+  // ---------------------------------------------------
   const addProduct = useCallback(() => {
     const newKey = Date.now().toString();
     setProducts((prev) => ({
       ...prev,
-      [newKey]: { _id: '', cantidadVacios: 0, cantidadLlenos: 0, quantity: 0 },
+      [newKey]: {
+        _id: '',
+        cantidadVacios: 0,
+        cantidadLlenos: 0,
+        cantidadAjenos: 0,
+        cantidadAsignacion: 0,
+        quantity: 0,
+        etiqueta: 'Entrega',
+      },
     }));
   }, []);
 
+  // ---------------------------------------------------
+  // ❌ Eliminar producto
+  // ---------------------------------------------------
   const removeProduct = useCallback((key: string) => {
     setProducts((prev) => {
       const copy = { ...prev };
@@ -74,63 +133,210 @@ export default function OrderForm({
     });
   }, []);
 
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
+  // ---------------------------------------------------
+  // 🧾 SUBMIT DEL FORMULARIO
+  // ---------------------------------------------------
+const handleSubmit = useCallback(
+  async (e: React.FormEvent) => {
+    e.preventDefault();
 
-      const selectedAddress = addresses.find((a) => a.id === addressId);
-      if (!selectedAddress) return alert('Selecciona una dirección válida');
-      if (!solicitante.trim()) return alert('Ingrese el nombre del solicitante');
-      if (!numeroSolicitante.trim()) return alert('Ingrese el número del solicitante');
+    const selectedAddress = addresses.find((a) => a.id === addressId);
+    if (!selectedAddress) return Swal.fire("Error", "Selecciona una dirección válida", "error");
+    if (!solicitante.trim()) return Swal.fire("Error", "Ingrese el nombre del solicitante", "error");
+    if (!numeroSolicitante.trim()) return Swal.fire("Error", "Ingrese el número del solicitante", "error");
 
-      const sanitizedProducts = Object.values(products).map((p) => ({
-        _id: p._id,
-        quantity: p.quantity,
-        cantidadVacios: p.cantidadVacios,
-        cantidadLlenos: p.cantidadLlenos,
-      }));
+    const sanitizedProducts = Object.values(products).map((p) => ({
+      _id: p._id,
+      quantity: p.quantity,
+      cantidadVacios: p.cantidadVacios,
+      cantidadLlenos: p.cantidadLlenos,
+      cantidadAjenos: p.cantidadAjenos,
+      cantidadAsignacion: p.cantidadAsignacion ?? 0,
+    }));
 
-      if (sanitizedProducts.some((p) => !p._id)) {
-        return alert('Selecciona un producto en cada línea.');
-      }
+    if (sanitizedProducts.some((p) => !p._id)) {
+      return Swal.fire("Error", "Seleccione un producto en cada línea.", "error");
+    }
 
-      setLoading(true);
-      try {
-        const res = await fetch('/api/orders', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: userEmail,
-            address: {
-              calle: selectedAddress.calle,
-              ciudad: selectedAddress.ciudad,
-              alias: selectedAddress.alias || '',
-            },
-            solicitante,
-            numeroSolicitante,
-            observaciones,
-            products: sanitizedProducts,
-            classification,
+    // ------------------------------------------
+    // 🟡 CREAR RESUMEN PARA EL MODAL
+    // ------------------------------------------
+    const productosHTML = sanitizedProducts
+      .map(
+        (p, i) => `
+        <div class="p-2 border rounded mb-2 bg-gray-50">
+          <b>Producto ${i + 1}</b><br/>
+          Solicitado: <b>${p.quantity}</b><br/>
+          Vacíos: <b>${p.cantidadVacios}</b><br/>
+          Llenos: <b>${p.cantidadLlenos}</b><br/>
+          Ajenos: <b>${p.cantidadAjenos}</b>
+        </div>
+      `
+      )
+      .join("");
+
+    // ------------------------------------------
+    // 🟡 MODAL SWEETALERT2 — CONFIRMACIÓN
+    // ------------------------------------------
+    const confirmar = await Swal.fire({
+      title: "Confirmar Pedido",
+      html: `
+        <div style="text-align:left">
+          <p><b>Solicitante:</b> ${solicitante}</p>
+          <p><b>Teléfono:</b> ${numeroSolicitante}</p>
+          <p><b>Dirección:</b> ${selectedAddress.calle}, ${selectedAddress.ciudad}</p>
+
+          <hr class="my-2"/>
+
+          <h3 class="font-semibold text-lg mb-2">Productos:</h3>
+          ${productosHTML}
+        </div>
+      `,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Enviar Pedido",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#16a34a",   // Verde Tailwind
+      cancelButtonColor: "#d1d5db",
+      width: 600,
+      backdrop: true,
+      allowOutsideClick: false,
+      customClass: {
+        popup: "rounded-xl shadow-lg",
+      },
+    });
+
+    if (!confirmar.isConfirmed) {
+      return; // ❌ Usuario canceló
+    }
+
+    // ------------------------------------------
+    // 🔥 SI CONFIRMA → SIGUE EL PROCESO NORMAL
+    // ------------------------------------------
+    setLoading(true);
+
+    try {
+      const debeDuplicarse = sanitizedProducts.some(
+        (p) =>
+          p.cantidadVacios === 0 &&
+          p.cantidadLlenos === 0 &&
+          p.cantidadAsignacion === 0 &&
+          p.cantidadAjenos >= 1
+      );
+
+      if (debeDuplicarse) {
+        const orderRecoleccion = {
+          email: userEmail,
+          address: {
+            calle: selectedAddress.calle,
+            ciudad: selectedAddress.ciudad,
+          },
+          solicitante,
+          numeroSolicitante,
+          observaciones,
+          tipo_cliente: clientTipo,
+          classification: "Medicinal",
+          products: sanitizedProducts.map((p) => ({
+            ...p,
+            quantity: 0,
+            etiqueta: "Recoleccion Ajenos",
+          })),
+        };
+
+        const orderEntrega = {
+          email: userEmail,
+          address: {
+            calle: selectedAddress.calle,
+            ciudad: selectedAddress.ciudad,
+          },
+          solicitante,
+          numeroSolicitante,
+          observaciones,
+          tipo_cliente: clientTipo,
+          classification: "Medicinal",
+          products: sanitizedProducts.map((p) => ({
+            _id: p._id,
+            quantity: p.cantidadAjenos,
+            cantidadVacios: 0,
+            cantidadLlenos: 0,
+            cantidadAjenos: 0,
+            cantidadAsignacion: 0,
+            etiqueta: "Entrega Ajenos",
+          })),
+        };
+
+        await Promise.all([
+          fetch("/api/orders", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(orderRecoleccion),
           }),
-        });
+          fetch("/api/orders", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(orderEntrega),
+          }),
+        ]);
 
-        const data = await res.json();
-        if (res.ok) {
-          alert('Pedido creado con éxito');
-          router.push('/dashboard');
-        } else {
-          alert(data.error || 'Error al realizar el pedido');
-        }
-      } catch (err) {
-        console.error('Error:', err);
-        alert('Error de conexión al servidor');
-      } finally {
-        setLoading(false);
+        Swal.fire("Éxito", "Se han creado 2 pedidos (Recolección y Entrega Ajenos)", "success");
+        router.push("/dashboard");
+        return;
       }
-    },
-    [addresses, addressId, solicitante, numeroSolicitante, observaciones, products, classification, userEmail, router]
-  );
 
+      // Pedido normal
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: userEmail,
+          address: {
+            calle: selectedAddress.calle,
+            ciudad: selectedAddress.ciudad,
+          },
+          solicitante,
+          numeroSolicitante,
+          observaciones,
+          etiqueta,
+          tipo_cliente: clientTipo,
+          classification: "Medicinal",
+          products: sanitizedProducts,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        Swal.fire("Listo!", "Pedido creado con éxito", "success");
+        router.push("/dashboard");
+      } else {
+        Swal.fire("Error", data.error || "Error al realizar el pedido", "error");
+      }
+    } catch (err) {
+      console.error("Error:", err);
+      Swal.fire("Error", "Error de conexión al servidor", "error");
+    } finally {
+      setLoading(false);
+    }
+  },
+  [
+    addresses,
+    addressId,
+    solicitante,
+    numeroSolicitante,
+    observaciones,
+    etiqueta,
+    clientTipo,
+    products,
+    userEmail,
+    router,
+  ]
+);
+
+
+
+  // ---------------------------------------------------
+  // 🖼 RETURN DEL FORMULARIO
+  // ---------------------------------------------------
   return (
     <form
       onSubmit={handleSubmit}
@@ -153,29 +359,28 @@ export default function OrderForm({
           className="mb-6 border border-gray-200 p-4 rounded-lg bg-gray-50 relative"
         >
           <label className="block mb-2 font-semibold">Producto</label>
-      <select
-        value={product._id}
-        onChange={(e) => updateProduct(key, '_id', e.target.value)}
-        required
-        className="w-full border border-gray-300 px-3 py-2 rounded mb-4"
-      >
-        <option value="">Seleccione un producto</option>
-        {availableProducts
-          .filter((p) => p.businessLine === 'Medicinal') // 🔹 Filtro agregado
-          .map((p) => (
-            <option key={p._id} value={p._id}>
-              {p.name} ({p.m3}m³)
-            </option>
-          ))}
-      </select>
+          <select
+            value={product._id}
+            onChange={(e) => updateProduct(key, '_id', e.target.value)}
+            required
+            className="w-full border border-gray-300 px-3 py-2 rounded mb-4"
+          >
+            <option value="">Seleccione un producto</option>
+            {availableProducts
+              .filter((p) => p.businessLine === 'Medicinal')
+              .map((p) => (
+                <option key={p._id} value={p._id}>
+                  {p.name} ({p.m3}m³)
+                </option>
+              ))}
+          </select>
 
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block mb-2 font-semibold">Cantidad</label>
+              <label className="block mb-2 font-semibold">Cantidad Solicitada</label>
               <input
                 type="number"
-                min={1}
+                min={0}
                 value={product.quantity}
                 onChange={(e) => updateProduct(key, 'quantity', e.target.value)}
                 className="w-full border border-gray-300 px-3 py-2 rounded"
@@ -194,7 +399,7 @@ export default function OrderForm({
             </div>
 
             <div>
-              <label className="block mb-2 font-semibold">Cilindros Llenos</label>
+              <label className="block mb-2 font-semibold">Cantidad Llenos</label>
               <input
                 type="number"
                 min={0}
@@ -203,6 +408,18 @@ export default function OrderForm({
                 className="w-full border border-gray-300 px-3 py-2 rounded"
               />
             </div>
+
+            <div>
+              <label className="block mb-2 font-semibold">Cantidad Ajenos</label>
+              <input
+                type="number"
+                min={0}
+                value={product.cantidadAjenos}
+                onChange={(e) => updateProduct(key, 'cantidadAjenos', e.target.value)}
+                className="w-full border border-gray-300 px-3 py-2 rounded"
+              />
+            </div>
+
           </div>
 
           {Object.keys(products).length > 1 && (

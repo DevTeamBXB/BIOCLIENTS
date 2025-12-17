@@ -2,6 +2,7 @@
 
 import OrderStepper from './OrderStepper';
 
+// 1. Interfaces (Sin cambios, ya están bien tipadas)
 interface OrderProduct {
   _id: string;
   name?: string;
@@ -9,6 +10,7 @@ interface OrderProduct {
   cantidadVacios: number;
   cantidadLlenos: number;
   cantidadAsignacion?: number;
+  etiqueta?: 'Recoleccion Ajenos' | 'Entrega Ajenos' | 'Entrega';
 }
 
 interface Order {
@@ -37,10 +39,39 @@ interface DashboardClientProps {
   consumoMensual?: { mes: string; m3: number }[] | Record<string, number>;
 }
 
+// 2. Componente EtiquetaBadge: Se asegura de que siempre haya un valor por defecto.
+type Etiqueta = OrderProduct['etiqueta'];
+
+function EtiquetaBadge({ etiqueta }: { etiqueta: Etiqueta }) {
+  // 🟢 Asignación robusta: Usa la etiqueta pasada, o si es nula/undefined, usa 'Entrega'.
+  const etiquetaFinal: NonNullable<Etiqueta> = etiqueta ?? 'Entrega'; 
+
+  const base =
+    'inline-flex items-center px-2 py-1 rounded text-xs font-medium gap-1 whitespace-nowrap';
+
+  const estilos: Record<NonNullable<Etiqueta>, string> = {
+    'Recoleccion Ajenos': 'bg-red-100 text-red-800',
+    'Entrega Ajenos': 'bg-orange-100 text-orange-800',
+    'Entrega': 'bg-cyan-100 text-cyan-800',
+  };
+
+  const iconos: Record<NonNullable<Etiqueta>, string> = {
+    'Recoleccion Ajenos': '📥',
+    'Entrega Ajenos': '📦',
+    'Entrega': '📤',
+  };
+
+  return (
+    <span className={`${base} ${estilos[etiquetaFinal]}`}>
+      {iconos[etiquetaFinal]} {etiquetaFinal}
+    </span>
+  );
+}
+
+// (El componente EstadoBadge y formatDate se mantienen igual)
 function EstadoBadge({ estado }: { estado: Order['status'] }) {
   const base =
     'inline-flex items-center px-2 py-1 rounded text-xs font-medium gap-1';
-
   const estilos: Record<Order['status'], string> = {
     pendiente: 'bg-yellow-100 text-yellow-800',
     procesando: 'bg-blue-100 text-blue-800',
@@ -49,7 +80,6 @@ function EstadoBadge({ estado }: { estado: Order['status'] }) {
     completado: 'bg-green-100 text-green-800',
     cancelado: 'bg-red-100 text-red-800',
   };
-
   const iconos: Record<Order['status'], string> = {
     pendiente: '⏳',
     procesando: '🧾',
@@ -58,7 +88,6 @@ function EstadoBadge({ estado }: { estado: Order['status'] }) {
     completado: '✅',
     cancelado: '❌',
   };
-
   const nombresAmigables: Record<Order['status'], string> = {
     pendiente: 'Pendiente',
     procesando: 'Verificación',
@@ -88,14 +117,12 @@ const formatDate = (dateStr?: string) => {
   }).format(date);
 };
 
+// 3. Componente Principal DashboardClient
 export default function DashboardClient({ user, orders }: DashboardClientProps) {
-  // 🟢 Separar pedidos según su estado
   const pedidosActivos = orders.filter(
     (o) => o.status !== 'completado' && o.status !== 'cancelado'
   );
   const pedidosFinalizados = orders.filter((o) => o.status === 'completado');
-
-  console.log('📦 Pedidos cargados:', orders);
 
   return (
     <div className="space-y-10 font-sans text-black">
@@ -126,13 +153,18 @@ export default function DashboardClient({ user, orders }: DashboardClientProps) 
                   📅 {formatDate(order.createdAt)}
                 </div>
 
-                <EstadoBadge estado={order.status} />
-                <OrderStepper estado={order.status} />
+                <div className="flex items-center gap-4">
+                  {/* 🟢 LLamada a EtiquetaBadge */}
+                  <EtiquetaBadge etiqueta={order.products[0]?.etiqueta} />
+                  <OrderStepper estado={order.status} />
+                </div>
               </li>
             ))}
           </ul>
         )}
       </section>
+
+      ---
 
       {/* ✅ Pedidos finalizados */}
       <section className="bg-white border border-gray-100 rounded-2xl p-6 shadow-md">
@@ -161,7 +193,8 @@ export default function DashboardClient({ user, orders }: DashboardClientProps) 
                   📅 {formatDate(order.createdAt)}
                 </div>
 
-                <EstadoBadge estado={order.status} />
+                {/* 🟢 LLamada a EtiquetaBadge */}
+                <EtiquetaBadge etiqueta={order.products[0]?.etiqueta} />
               </li>
             ))}
           </ul>

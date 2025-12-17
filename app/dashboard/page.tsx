@@ -15,11 +15,11 @@ export default async function DashboardPage() {
 
   await connectToDatabase();
 
+  // Es mejor usar directamente la interfaz de Mongoose si ya la tienes tipada
   const client = await Client.findOne({ correo: session.user.correo }).lean<Cliente>();
   if (!client) return <p>Usuario no encontrado</p>;
 
   // Traer pedidos y productos
-  // Populamos productos no es necesario aquí porque enriquecemos manualmente con productMap
   const orders = await Order.find({ userId: client._id }).sort({ createdAt: -1 }).lean();
   const allProducts = await Product.find().lean();
 
@@ -53,6 +53,8 @@ export default async function DashboardPage() {
         cantidadVacios: Number(prod.cantidadVacios) || 0,
         cantidadLlenos: Number(prod.cantidadLlenos) || 0,
         volumen,
+        // 🟢 CORRECCIÓN CLAVE: Asignar la etiqueta desde el objeto 'prod'
+        etiqueta: prod.etiqueta,
       };
     });
 
@@ -88,15 +90,19 @@ export default async function DashboardPage() {
     }, {});
 
   // DEBUG: ver en server logs
-  console.log("📦 Pedidos (enriquecidos) count:", enrichedOrders.length);
-  // también puedes revisar first order
-  if (enrichedOrders[0]) {
+  // console.log("📦 Pedidos (enriquecidos) count:", enrichedOrders.length);
+/*   if (enrichedOrders[0]) {
     console.log("📦 Ejemplo pedido[0]:", {
       _id: enrichedOrders[0]._id,
       classification: enrichedOrders[0].classification,
-      products: enrichedOrders[0].products,
+      products: enrichedOrders[0].products.map((p: any) => ({
+        // Mostrar la etiqueta para depuración
+        _id: p._id, 
+        name: p.name, 
+        etiqueta: p.etiqueta 
+      }))
     });
-  }
+  } */
 
   return (
     <>
@@ -104,12 +110,13 @@ export default async function DashboardPage() {
       <main className="min-h-screen bg-gray-100 py-10 px-4">
         <div className="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-md">
           <h1 className="text-2xl font-bold mb-2">
-            Bienvenido, {client.nombre || client.correo}
+            Bienvenido, {client.nombre || session.user.correo}
           </h1>
           <p className="text-gray-600 mb-6">Este es tu panel de gestión de pedidos.</p>
 
           <DashboardClient
             user={JSON.parse(JSON.stringify(client))}
+            // El JSON.stringify/parse es útil para pasar objetos serializables entre Server Component y Client Component
             orders={JSON.parse(JSON.stringify(enrichedOrders))}
             consumoMensual={consumoMensual}
           />
