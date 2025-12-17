@@ -22,6 +22,7 @@ type OrderFormProps = {
   products: Product[];
   clientTipo: string;
   etiqueta: string;
+  classification: string;
 };
 
 type SelectedProduct = {

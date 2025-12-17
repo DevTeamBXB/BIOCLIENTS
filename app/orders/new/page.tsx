@@ -83,12 +83,15 @@ export default async function NewOrderPage() {
             Tu orden mínima es {client.order_min || 'Consultar con el asesor'}
           </p>
 
+          {/* Ahora OrderForm aceptará classification sin errores */}
           <OrderForm
             addresses={addresses}
             userEmail={session.user.correo}
             products={products}
-            classification={classification}
-          />
+            classification={classification} 
+            clientTipo={''} 
+            etiqueta={''}         
+             />
         </section>
 
         {/* 📘 Guía de productos */}
