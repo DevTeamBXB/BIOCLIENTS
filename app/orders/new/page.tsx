@@ -42,7 +42,7 @@ export default async function NewOrderPage() {
     })
   );
 
-  // 🏭 Clasificación / tipo del cliente (Medicinal / Industrial)
+  //  Clasificación / tipo del cliente (Medicinal / Industrial)
   const clientTipo = (client.tipo || '').toLowerCase();
 
   if (!['medicinal', 'industrial'].includes(clientTipo))
@@ -72,7 +72,7 @@ export default async function NewOrderPage() {
     <main className="min-h-screen flex justify-center bg-gradient-to-br from-emerald-100 via-white to-sky-200 p-6">
       <div className="flex flex-col lg:flex-row gap-8 max-w-6xl w-full">
         
-        {/* 🧾 Sección del formulario */}
+        {/* Sección del formulario */}
         <section className="bg-white p-8 rounded-2xl shadow-md flex-1">
           <h1 className="text-2xl font-bold mb-4 text-center text-gray-800">
             Nuevo pedido
@@ -83,7 +83,7 @@ export default async function NewOrderPage() {
             Tu orden mínima es {client.order_min || 'Consultar con el asesor'}
           </p>
 
-          {/* Ahora OrderForm aceptará classification sin errores */}
+          
           <OrderForm
             addresses={addresses}
             userEmail={session.user.correo}
@@ -94,7 +94,7 @@ export default async function NewOrderPage() {
              />
         </section>
 
-        {/* 📘 Guía de productos */}
+        {/* Guía de productos */}
         <aside className="bg-white p-6 rounded-2xl border border-gray-200 w-full lg:w-80 h-fit shadow-sm">
           <h2 className="text-xl font-semibold mb-4 text-gray-700 text-center">
             Guía de productos
@@ -126,6 +126,21 @@ export default async function NewOrderPage() {
               />
               <span className="text-gray-600 text-sm">
                 Cilindro portátil de 1 m³
+                <br />
+                <span className="text-xs text-gray-400">(imagen ilustrativa)</span>
+              </span>
+            </li>
+
+            <li className="flex items-center gap-4">
+              <Image
+                src="/images/termosDw.jpg"
+                alt="Termo Dewar"
+                width={80}
+                height={80}
+                className="rounded-lg border border-gray-300"
+              />
+              <span className="text-gray-600 text-sm">
+                Termo Dewar
                 <br />
                 <span className="text-xs text-gray-400">(imagen ilustrativa)</span>
               </span>
