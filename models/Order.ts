@@ -15,6 +15,7 @@ interface ProductItem {
   cantidadAsignacion?: number;
 
   quantity: number;
+  volume: number;
 
   etiqueta: 'Recoleccion Ajenos' | 'Entrega Ajenos' | 'Entrega';
 }
@@ -106,6 +107,7 @@ const OrderSchema = new Schema<IOrder>(
         cantidadAsignacion: { type: Number, min: 0, default: 0 },
 
         quantity: { type: Number, required: true, min: 0 },
+         volume: { type: Number, required: true, min: 0, default: 0 },
 
         etiqueta: {
           type: String,
@@ -151,5 +153,8 @@ const OrderSchema = new Schema<IOrder>(
 //  EXPORTAR MODELO
 // ---------------------------------------------------------
 
-export default mongoose.models.Order ||
+const Order =
+  mongoose.models.Order ||
   mongoose.model<IOrder>('Order', OrderSchema);
+
+export default Order;

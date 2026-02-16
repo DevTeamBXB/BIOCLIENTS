@@ -8,6 +8,7 @@ import Client from '@/models/Client';
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
+
     if (!session?.user?.correo) {
       return NextResponse.json(
         { error: 'No autorizado' },
@@ -18,20 +19,26 @@ export async function POST(req: Request) {
     await connectToDatabase();
 
     const body = await req.json();
+
     const {
       address,
       solicitante,
       numeroSolicitante,
       observaciones,
       products,
-      classification,
     } = body;
 
-    // Debug para ver lo que llega
-    console.log("📦 Products recibidos en API:", JSON.stringify(products, null, 2));
+    // 🔐 Validar productos
+    if (!Array.isArray(products) || products.length === 0) {
+      return NextResponse.json(
+        { error: 'Debe enviar al menos un producto' },
+        { status: 400 }
+      );
+    }
 
-    // Encontrar cliente
+    // 🔍 Buscar cliente
     const client = await Client.findOne({ correo: session.user.correo });
+
     if (!client) {
       return NextResponse.json(
         { error: 'Cliente no encontrado' },
@@ -39,29 +46,47 @@ export async function POST(req: Request) {
       );
     }
 
-    // Mapeo seguro de productos
+    // 🏷 Determinar clasificación AUTOMÁTICAMENTE
+    const clientTipo = (client.tipo || '').toLowerCase();
+
+    const classification =
+      clientTipo === 'industrial'
+        ? 'Industrial'
+        : 'Medicinal';
+
+    // 📦 Mapear productos de forma segura
     const formattedProducts = products.map((p: any) => ({
       _id: p._id,
-      quantity: p.quantity ?? 0,
 
-      // 👌 TODAS las cantidades llegan bien desde FE
+      quantity: Number(p.quantity ?? 0),
+
       cantidadAjenos: Number(p.cantidadAjenos ?? 0),
       cantidadVacios: Number(p.cantidadVacios ?? 0),
       cantidadLlenos: Number(p.cantidadLlenos ?? 0),
       cantidadAsignacion: Number(p.cantidadAsignacion ?? 0),
 
-      etiqueta: typeof p.etiqueta === "string" ? p.etiqueta : "Entrega",
+      // 👇 NUEVO CAMPO
+      volume: 0, // SIEMPRE inicia en 0
+
+      etiqueta:
+        p.etiqueta === 'Recoleccion Ajenos' ||
+        p.etiqueta === 'Entrega Ajenos' ||
+        p.etiqueta === 'Entrega'
+          ? p.etiqueta
+          : 'Entrega',
     }));
 
-    console.log("📦 Products GUARDADOS en DB:", formattedProducts);
+    console.log('📦 Products guardados:', formattedProducts);
+    console.log('🏷 Classification:', classification);
 
+    // 🧾 Crear orden
     const newOrder = await Order.create({
       userId: client._id,
       email: session.user.correo,
       address,
       solicitante,
       numeroSolicitante,
-      observaciones: observaciones || "",
+      observaciones: observaciones || '',
       products: formattedProducts,
       classification,
     });
@@ -73,6 +98,7 @@ export async function POST(req: Request) {
 
   } catch (error) {
     console.error('❌ Error creando orden:', error);
+
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

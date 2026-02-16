@@ -1,8 +1,12 @@
+"use client";
+
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import {
   FlaskRound,
   Stethoscope,
-} from "lucide-react"; // puedes agregar más si lo deseas
+  Factory,
+} from "lucide-react";
 
 type CardProps = {
   title: string;
@@ -47,24 +51,50 @@ function Card({ title, description, href, icon, external = false }: CardProps) {
 }
 
 export default function HomePage() {
+  const { data: session, status } = useSession();
+
+  if (status === "loading") {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <p className="text-green-700 font-semibold">Cargando...</p>
+      </main>
+    );
+  }
+
+  const tipo = session?.user?.tipo;
+
   return (
     <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white to-green-50 px-4 py-12">
       <div className="grid gap-8 max-w-5xl w-full grid-cols-[repeat(auto-fit,minmax(250px,1fr))]">
-        {/* 🧪 Oxígeno Medicinal */}
-        <Card
-          title="Oxígeno Medicinal"
-          description="Cilindros, termos y suministro hospitalario de oxígeno."
-          href="/orders/new"
-          icon={<FlaskRound size={56} strokeWidth={1.5} />}
-        />
+        
+        {/* 🧪 Opciones Medicinal */}
+        {tipo === "Medicinal" && (
+          <>
+            <Card
+              title="Productos Medicinales"
+              description="Cilindros, termos y suministro hospitalario."
+              href="/orders/new"
+              icon={<FlaskRound size={56} strokeWidth={1.5} />}
+            />
 
-        {/* 💉 Equipos Biomédicos */}
-        <Card
-          title="Equipos Biomédicos"
-          description="Concentradores, línea del sueño y equipos hospitalarios."
-          href="/otherorder/orders/biomedicalequipment"
-          icon={<Stethoscope size={56} strokeWidth={1.5} />}
-        />
+            <Card
+              title="Equipos Biomédicos"
+              description="Concentradores, línea del sueño y equipos hospitalarios."
+              href="/otherorder/orders/biomedicalequipment"
+              icon={<Stethoscope size={56} strokeWidth={1.5} />}
+            />
+          </>
+        )}
+
+        {/* 🏭 Opción Industrial */}
+        {tipo === "industrial" && (
+          <Card
+            title="Productos Industriales"
+            description="Pedidos de gases para uso industrial"
+            href="/ordersInd/new"
+            icon={<Factory size={56} strokeWidth={1.5} />}
+          />
+        )}
       </div>
     </main>
   );
