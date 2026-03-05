@@ -1,12 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useSession } from "next-auth/react";
-import {
-  FlaskRound,
-  Stethoscope,
-  Factory,
-} from "lucide-react";
+import { useSession, SessionProvider } from "next-auth/react";
+import { FlaskRound, Stethoscope, Factory } from "lucide-react";
+import React from "react";
 
 type CardProps = {
   title: string;
@@ -25,8 +22,14 @@ function Card({ title, description, href, icon, external = false }: CardProps) {
       <div className="mb-6 flex justify-center items-center w-20 h-20 rounded-full bg-green-50 border border-green-200 shadow-inner">
         <div className="text-green-600">{icon}</div>
       </div>
-      <span className="text-2xl font-bold text-green-700 mb-2">{title}</span>
-      <p className="text-gray-600 text-sm leading-relaxed">{description}</p>
+
+      <span className="text-2xl font-bold text-green-700 mb-2">
+        {title}
+      </span>
+
+      <p className="text-gray-600 text-sm leading-relaxed">
+        {description}
+      </p>
     </>
   );
 
@@ -50,25 +53,55 @@ function Card({ title, description, href, icon, external = false }: CardProps) {
   );
 }
 
-export default function HomePage() {
+export default function OrdersMenu() {
   const { data: session, status } = useSession();
+
+  /* ---------------- LOADING ---------------- */
 
   if (status === "loading") {
     return (
       <main className="min-h-screen flex items-center justify-center">
-        <p className="text-green-700 font-semibold">Cargando...</p>
+        <p className="text-green-700 font-semibold">
+          Cargando sesión...
+        </p>
       </main>
     );
   }
 
-  const tipo = session?.user?.tipo;
+  /* ---------------- SIN SESIÓN ---------------- */
+
+  if (status === "unauthenticated") {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-500">
+          Debes iniciar sesión para continuar.
+        </p>
+      </main>
+    );
+  }
+
+  /* ---------------- ESPERAR TIPO ---------------- */
+
+  const tipo = session?.user?.tipo?.toString().toLowerCase().trim();
+
+  if (!tipo) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <p className="text-green-700 font-semibold">
+          Cargando opciones...
+        </p>
+      </main>
+    );
+  }
+
+  /* ---------------- UI PRINCIPAL ---------------- */
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white to-green-50 px-4 py-12">
       <div className="grid gap-8 max-w-5xl w-full grid-cols-[repeat(auto-fit,minmax(250px,1fr))]">
-        
-        {/* 🧪 Opciones Medicinal */}
-        {tipo === "Medicinal" && (
+
+        {/* 🧪 MEDICINAL */}
+        {tipo === "medicinal" && (
           <>
             <Card
               title="Productos Medicinales"
@@ -86,7 +119,7 @@ export default function HomePage() {
           </>
         )}
 
-        {/* 🏭 Opción Industrial */}
+        {/* 🏭 INDUSTRIAL */}
         {tipo === "industrial" && (
           <Card
             title="Productos Industriales"
@@ -94,6 +127,13 @@ export default function HomePage() {
             href="/ordersInd/new"
             icon={<Factory size={56} strokeWidth={1.5} />}
           />
+        )}
+
+        {/* 🚨 TIPO DESCONOCIDO */}
+        {tipo !== "medicinal" && tipo !== "industrial" && (
+          <div className="col-span-full text-center text-gray-500">
+            Tu tipo de usuario no tiene opciones configuradas.
+          </div>
         )}
       </div>
     </main>
