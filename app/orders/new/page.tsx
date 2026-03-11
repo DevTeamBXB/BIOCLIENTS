@@ -64,7 +64,7 @@ export default async function NewOrderPage() {
 
   // 🏷 Clasificación final según cliente
   const classification =
-    clientTipo === 'medicinal'
+    clientTipo === 'Medicinal'
       ? 'Medicinal'
       : 'Industrial';
 
