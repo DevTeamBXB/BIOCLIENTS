@@ -41,7 +41,7 @@ export default async function NewOrderPage() {
 
   // 🧾 Obtener productos según tipo
   const rawProducts = await Product.find(
-    { type: clientTipo },
+    { type: "Otros" },
     '_id name m3 type businessLine'
   ).lean<ProductType[]>();
 
