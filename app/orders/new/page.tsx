@@ -133,7 +133,7 @@ export default async function NewOrderPage() {
 
             <li className="flex items-center gap-4">
               <Image
-                src="/images/termosDw.jpg"
+                src="/images/termosdw.jpg"
                 alt="Termo Dewar"
                 width={80}
                 height={80}
