@@ -50,7 +50,7 @@ export default async function NewOrderPage() {
 
   // 📦 Productos según tipo
   const rawProducts = await Product.find(
-    { type: "Medicinal" },
+    { businessLine: "Medicinal" },
     '_id name m3 type businessLine'
   ).lean<ProductType[]>();
 
@@ -107,7 +107,7 @@ export default async function NewOrderPage() {
                 alt="Cilindro de 6mts"
                 width={80}
                 height={80}
-                className="rounded-lg border border-gray-300"
+                className="rounded-lg border border-white-300"
               />
               <span className="text-gray-600 text-sm">
                 Cilindro de 6 mts de oxígeno
@@ -122,7 +122,7 @@ export default async function NewOrderPage() {
                 alt="Cilindro portátil 1mt"
                 width={80}
                 height={80}
-                className="rounded-lg border border-gray-300"
+                className="rounded-lg border border-white-300"
               />
               <span className="text-gray-600 text-sm">
                 Cilindro portátil de 1 m³
@@ -133,14 +133,14 @@ export default async function NewOrderPage() {
 
             <li className="flex items-center gap-4">
               <Image
-                src="/images/termosdw.jpg"
+                src="/images/termo.png"
                 alt="Termo Dewar"
-                width={80}
+                width={90}
                 height={80}
-                className="rounded-lg border border-gray-300"
+                className="rounded-lg border border-white-300"
               />
               <span className="text-gray-600 text-sm">
-                Termo Dewar
+                Termo de Oxigeno Liquido
                 <br />
                 <span className="text-xs text-gray-400">(imagen ilustrativa)</span>
               </span>

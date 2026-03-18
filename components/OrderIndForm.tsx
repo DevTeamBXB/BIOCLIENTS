@@ -229,7 +229,7 @@ export default function OrderForm({
             {/* 🔥 AQUÍ ESTABA EL ERROR — QUITAMOS EL FILTER MEDICINAL */}
             {availableProducts.map((p) => (
               <option key={p._id} value={p._id}>
-                {p.name} ({p.m3}m³)
+                {p.name}
               </option>
             ))}
           </select>

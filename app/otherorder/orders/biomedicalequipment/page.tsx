@@ -41,7 +41,7 @@ export default async function NewOrderPage() {
 
   // 🧾 Obtener productos según tipo
   const rawProducts = await Product.find(
-    { type: "Otros" },
+    { businessLine: "Equipos Biomedicos" },
     '_id name m3 type businessLine'
   ).lean<ProductType[]>();
 
@@ -83,7 +83,7 @@ export default async function NewOrderPage() {
                 alt="Cpap"
                 width={80}
                 height={80}
-                className="rounded-lg border border-gray-300 shadow-sm"
+                className="rounded-lg border border-white-300 shadow-sm"
               />
               <span className="text-gray-600 text-sm">
                 Cpap
@@ -98,7 +98,7 @@ export default async function NewOrderPage() {
                 alt="Concentrador"
                 width={80}
                 height={80}
-                className="rounded-lg border border-gray-300 shadow-sm"
+                className="rounded-lg border border-white-300 shadow-sm"
               />
               <span className="text-gray-600 text-sm">
                 Concentrador

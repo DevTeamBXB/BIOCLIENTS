@@ -103,14 +103,14 @@ export default async function NewOrderPage() {
           <ul className="space-y-5">
             <li className="flex items-center gap-4">
               <Image
-                src="/images/6mts.jpeg"
-                alt="Cilindro de 6mts"
-                width={80}
-                height={80}
-                className="rounded-lg border border-gray-300"
+                src="/images/OxigenoInd.png"
+                alt="Oxigeno Industrial"
+                width={20}
+                height={30}
+                className="rounded-lg border border-white-300"
               />
               <span className="text-gray-600 text-sm">
-                Cilindro de 6 mts de oxígeno
+                Oxigeno Industrial
                 <br />
                 <span className="text-xs text-gray-400">(imagen ilustrativa)</span>
               </span>
@@ -118,14 +118,14 @@ export default async function NewOrderPage() {
 
             <li className="flex items-center gap-4">
               <Image
-                src="/images/portatil.jpeg"
-                alt="Cilindro portátil 1mt"
-                width={80}
+                src="/images/Argón.png"
+                alt="Argon"
+                width={20}
                 height={80}
-                className="rounded-lg border border-gray-300"
+                className="rounded-lg border border-white-300"
               />
               <span className="text-gray-600 text-sm">
-                Cilindro portátil de 1 m³
+                Argon
                 <br />
                 <span className="text-xs text-gray-400">(imagen ilustrativa)</span>
               </span>
@@ -133,18 +133,36 @@ export default async function NewOrderPage() {
 
             <li className="flex items-center gap-4">
               <Image
-                src="/images/termosDw.jpg"
-                alt="Termo Dewar"
-                width={80}
+                src="/images/Dioxido.png"
+                alt="Dióxido de Carbono CO2"
+                width={20}
                 height={80}
-                className="rounded-lg border border-gray-300"
+                className="rounded-lg border border-white-300"
               />
               <span className="text-gray-600 text-sm">
-                Termo Dewar
+                Dióxido de Carbono CO2
                 <br />
                 <span className="text-xs text-gray-400">(imagen ilustrativa)</span>
               </span>
             </li>
+
+
+            <li className="flex items-center gap-4">
+              <Image
+                src="/images/Acetileno.png"
+                alt="Acetileno"
+                width={40}
+                height={30}
+                className="rounded-lg border border-white-300"
+              />
+              <span className="text-gray-600 text-sm">
+                Acetileno
+                <br />
+                <span className="text-xs text-gray-400">(imagen ilustrativa)</span>
+              </span>
+            </li>
+
+
           </ul>
         </aside>
       </div>
