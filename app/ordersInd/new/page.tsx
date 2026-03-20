@@ -50,7 +50,7 @@ export default async function NewOrderPage() {
 
   // 📦 Productos según tipo
     const rawProducts = await Product.find(
-    { type: new RegExp(`^${clientTipo}$`, 'i') },
+    { businessLine: "Industrial" },
     '_id name m3 type businessLine'
     ).lean<ProductType[]>();
 
